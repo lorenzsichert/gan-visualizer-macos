@@ -1,0 +1,427 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1989BCB775691ECE4925A6B1 /* ControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297D6B6E649F367B4A0CEEAF /* ControlPanel.swift */; };
+		29F12F66AD987DF649A9BAB3 /* LSDLatent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C785A1C63E80131A9A99AF /* LSDLatent.swift */; };
+		335556932F2A143664092D69 /* GANVisualizerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15A878E5615BF46DA5F9657 /* GANVisualizerApp.swift */; };
+		3A2FA96D5A99CC768CDF463A /* SliderRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B652C03E6C1D1B836811311C /* SliderRow.swift */; };
+		3A833EBD935222F1995CB1D3 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFE4EFB2D624939E532A556 /* Settings.swift */; };
+		6319EA8A429E280E00472A2E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA741D322DFA983BAFE60B4C /* ContentView.swift */; };
+		825C170EA6E2BC250D7F091D /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E02640934A12EAE6718D0D98 /* Renderer.swift */; };
+		9221A95D24BB908261FCD01C /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1EA1BC999378BF2A7807AF /* AppState.swift */; };
+		98C6433146578FF42D18AB3C /* AudioPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70834630B81F226D86252302 /* AudioPipeline.swift */; };
+		9D02CF225EA7F55366D566EA /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87CE0F7D81D5562DA2F75B3A /* Shaders.metal */; };
+		A32ABB00BCCEB894D5983526 /* convert_model.py in Resources */ = {isa = PBXBuildFile; fileRef = B7448EF5181BCE2A2C452202 /* convert_model.py */; };
+		BD0A5FB3822F719F04220A01 /* Converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70099A41D8AA2D45E6DD125A /* Converter.swift */; };
+		C396EBEA9854445D2160B137 /* setup_converter.sh in Resources */ = {isa = PBXBuildFile; fileRef = B15D4874309ABAADD26B4F9A /* setup_converter.sh */; };
+		DB2EDF97BE539CF6683B3A35 /* requirements.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9248021C3EA14ADB89353528 /* requirements.txt */; };
+		E747135AD8C69886CCE4FE61 /* InferenceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63BED49B70B4A5CA3C86849D /* InferenceEngine.swift */; };
+		F61BD7C2131BC71CB364820A /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64770C1D077FFF25F4530441 /* ModelManager.swift */; };
+		FD31B921C92E5A62497E62BA /* LatentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED8BF484592EAFB4F25101A3 /* LatentEngine.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		297D6B6E649F367B4A0CEEAF /* ControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanel.swift; sourceTree = "<group>"; };
+		5AFE4EFB2D624939E532A556 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		63BED49B70B4A5CA3C86849D /* InferenceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferenceEngine.swift; sourceTree = "<group>"; };
+		64770C1D077FFF25F4530441 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
+		70099A41D8AA2D45E6DD125A /* Converter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Converter.swift; sourceTree = "<group>"; };
+		70834630B81F226D86252302 /* AudioPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPipeline.swift; sourceTree = "<group>"; };
+		87CE0F7D81D5562DA2F75B3A /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
+		8B1EA1BC999378BF2A7807AF /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		9248021C3EA14ADB89353528 /* requirements.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = requirements.txt; sourceTree = "<group>"; };
+		93C785A1C63E80131A9A99AF /* LSDLatent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LSDLatent.swift; sourceTree = "<group>"; };
+		B15D4874309ABAADD26B4F9A /* setup_converter.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = setup_converter.sh; sourceTree = "<group>"; };
+		B652C03E6C1D1B836811311C /* SliderRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliderRow.swift; sourceTree = "<group>"; };
+		B7448EF5181BCE2A2C452202 /* convert_model.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = convert_model.py; sourceTree = "<group>"; };
+		B9BBFDDA5EABCAEE6B85A97A /* GANVisualizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GANVisualizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA741D322DFA983BAFE60B4C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		C15A878E5615BF46DA5F9657 /* GANVisualizerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GANVisualizerApp.swift; sourceTree = "<group>"; };
+		E02640934A12EAE6718D0D98 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
+		ED8BF484592EAFB4F25101A3 /* LatentEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatentEngine.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		04D06A679C44D8D28D8CF1AC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B9BBFDDA5EABCAEE6B85A97A /* GANVisualizer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		17EF8CBE265EE4B50791F784 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				87CE0F7D81D5562DA2F75B3A /* Shaders.metal */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		1C0AF6590BD5A788338CA850 /* Model */ = {
+			isa = PBXGroup;
+			children = (
+				70834630B81F226D86252302 /* AudioPipeline.swift */,
+				70099A41D8AA2D45E6DD125A /* Converter.swift */,
+				63BED49B70B4A5CA3C86849D /* InferenceEngine.swift */,
+				ED8BF484592EAFB4F25101A3 /* LatentEngine.swift */,
+				93C785A1C63E80131A9A99AF /* LSDLatent.swift */,
+				64770C1D077FFF25F4530441 /* ModelManager.swift */,
+				E02640934A12EAE6718D0D98 /* Renderer.swift */,
+				5AFE4EFB2D624939E532A556 /* Settings.swift */,
+			);
+			path = Model;
+			sourceTree = "<group>";
+		};
+		3C86A8FFB70774A58392720E /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				B2F893B214E8820696A41C0C /* App */,
+				1C0AF6590BD5A788338CA850 /* Model */,
+				426D86861AFF112CF089643C /* Views */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		426D86861AFF112CF089643C /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				BA741D322DFA983BAFE60B4C /* ContentView.swift */,
+				297D6B6E649F367B4A0CEEAF /* ControlPanel.swift */,
+				B652C03E6C1D1B836811311C /* SliderRow.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		8B7D28D54036CE035124F54C = {
+			isa = PBXGroup;
+			children = (
+				DC3F2425F179CE594F56BDFC /* GANVisualizer */,
+				04D06A679C44D8D28D8CF1AC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		9C4E2EA201566E2B11D26AAE /* Converter */ = {
+			isa = PBXGroup;
+			children = (
+				B7448EF5181BCE2A2C452202 /* convert_model.py */,
+				9248021C3EA14ADB89353528 /* requirements.txt */,
+				B15D4874309ABAADD26B4F9A /* setup_converter.sh */,
+			);
+			path = Converter;
+			sourceTree = "<group>";
+		};
+		B2F893B214E8820696A41C0C /* App */ = {
+			isa = PBXGroup;
+			children = (
+				8B1EA1BC999378BF2A7807AF /* AppState.swift */,
+				C15A878E5615BF46DA5F9657 /* GANVisualizerApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		DC3F2425F179CE594F56BDFC /* GANVisualizer */ = {
+			isa = PBXGroup;
+			children = (
+				9C4E2EA201566E2B11D26AAE /* Converter */,
+				17EF8CBE265EE4B50791F784 /* Resources */,
+				3C86A8FFB70774A58392720E /* Sources */,
+			);
+			path = GANVisualizer;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1944B5E9E232E9D6404C48C9 /* GANVisualizer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 452AFBF2EE7FB4F8337E9D5D /* Build configuration list for PBXNativeTarget "GANVisualizer" */;
+			buildPhases = (
+				224E42BA50B7E25B81F62DEE /* Sources */,
+				42F57685D3577F73F3F675A9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GANVisualizer;
+			packageProductDependencies = (
+			);
+			productName = GANVisualizer;
+			productReference = B9BBFDDA5EABCAEE6B85A97A /* GANVisualizer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EEF00B18CF6F77CB63D3B08D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					1944B5E9E232E9D6404C48C9 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = E9B498D4CB32D2E0D49AB3AB /* Build configuration list for PBXProject "GANVisualizer" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 8B7D28D54036CE035124F54C;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 04D06A679C44D8D28D8CF1AC /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1944B5E9E232E9D6404C48C9 /* GANVisualizer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		42F57685D3577F73F3F675A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A32ABB00BCCEB894D5983526 /* convert_model.py in Resources */,
+				DB2EDF97BE539CF6683B3A35 /* requirements.txt in Resources */,
+				C396EBEA9854445D2160B137 /* setup_converter.sh in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		224E42BA50B7E25B81F62DEE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9221A95D24BB908261FCD01C /* AppState.swift in Sources */,
+				98C6433146578FF42D18AB3C /* AudioPipeline.swift in Sources */,
+				6319EA8A429E280E00472A2E /* ContentView.swift in Sources */,
+				1989BCB775691ECE4925A6B1 /* ControlPanel.swift in Sources */,
+				BD0A5FB3822F719F04220A01 /* Converter.swift in Sources */,
+				335556932F2A143664092D69 /* GANVisualizerApp.swift in Sources */,
+				E747135AD8C69886CCE4FE61 /* InferenceEngine.swift in Sources */,
+				29F12F66AD987DF649A9BAB3 /* LSDLatent.swift in Sources */,
+				FD31B921C92E5A62497E62BA /* LatentEngine.swift in Sources */,
+				F61BD7C2131BC71CB364820A /* ModelManager.swift in Sources */,
+				825C170EA6E2BC250D7F091D /* Renderer.swift in Sources */,
+				3A833EBD935222F1995CB1D3 /* Settings.swift in Sources */,
+				9D02CF225EA7F55366D566EA /* Shaders.metal in Sources */,
+				3A2FA96D5A99CC768CDF463A /* SliderRow.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		09A82615D312EBDF135B510B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GANVisualizer/GANVisualizer.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GANVisualizer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jakobsichert.GANVisualizer;
+				PRODUCT_NAME = GANVisualizer;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		1996C86274E5053586A44E3C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		2A5300BA36DB60E71AA2679D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GANVisualizer/GANVisualizer.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GANVisualizer/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jakobsichert.GANVisualizer;
+				PRODUCT_NAME = GANVisualizer;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		4935A59254B8558284AE8969 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		452AFBF2EE7FB4F8337E9D5D /* Build configuration list for PBXNativeTarget "GANVisualizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2A5300BA36DB60E71AA2679D /* Debug */,
+				09A82615D312EBDF135B510B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E9B498D4CB32D2E0D49AB3AB /* Build configuration list for PBXProject "GANVisualizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4935A59254B8558284AE8969 /* Debug */,
+				1996C86274E5053586A44E3C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EEF00B18CF6F77CB63D3B08D /* Project object */;
+}
