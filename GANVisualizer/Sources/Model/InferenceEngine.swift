@@ -45,6 +45,7 @@ final class InferenceEngine {
     private var textureIndex = 0
     private var publishedTexture: MTLTexture?
     private var publishedGeneration = 0
+    private var awaitingAckGeneration: Int?
 
     private var planesBuffer: MTLBuffer?
     private var planesCapacity = 0
@@ -157,6 +158,7 @@ final class InferenceEngine {
         planesCapacity = newCapacity
         publishedTexture = nil
         publishedGeneration += 1
+        awaitingAckGeneration = nil
         self.computeUnits = computeUnits
         lock.unlock()
 
@@ -179,7 +181,15 @@ final class InferenceEngine {
     }
 
     /// Called by the renderer once it has consumed a published frame.
-    func acknowledge() { ackSem.signal() }
+    /// Duplicate acks for the same generation are ignored so the pump can never
+    /// run ahead of the renderer and overwrite a texture still being displayed.
+    func acknowledge(_ generation: Int) {
+        lock.lock()
+        let match = (awaitingAckGeneration == generation)
+        if match { awaitingAckGeneration = nil }
+        lock.unlock()
+        if match { ackSem.signal() }
+    }
 
     func latestFrame() -> (texture: MTLTexture, generation: Int)? {
         lock.lock(); defer { lock.unlock() }
@@ -263,6 +273,7 @@ final class InferenceEngine {
         if changed {
             publishedTexture = texture
             publishedGeneration += 1
+            awaitingAckGeneration = publishedGeneration
         }
         lock.unlock()
         return changed

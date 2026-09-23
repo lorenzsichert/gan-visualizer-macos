@@ -33,7 +33,6 @@ final class Renderer: NSObject, MTKViewDelegate {
 
     private var lastTime: Double = CACurrentMediaTime()
     private var lastGeneration = -1
-    private var pendingAck = false
     private var frames = 0
     private var statWindow: Double = CACurrentMediaTime()
     private var inferSum = 0.0
@@ -88,10 +87,11 @@ final class Renderer: NSObject, MTKViewDelegate {
         let size = engine?.currentImageSize() ?? (width: 512, height: 512)
         let imgW = Swift.max(1, size.width)
         let imgH = Swift.max(1, size.height)
+        var consumedGeneration: Int?
         if let frame = engine?.latestFrame(), frame.generation != lastGeneration {
             texture = frame.texture
             lastGeneration = frame.generation
-            pendingAck = true
+            consumedGeneration = frame.generation
         }
 
         if let enc = cb.makeRenderCommandEncoder(descriptor: rpd) {
@@ -108,9 +108,10 @@ final class Renderer: NSObject, MTKViewDelegate {
             enc.endEncoding()
         }
         cb.present(drawable)
-        let consumed = pendingAck
-        cb.addCompletedHandler { [weak self] _ in
-            if consumed { self?.engine?.acknowledge(); self?.pendingAck = false }
+        if let generation = consumedGeneration {
+            cb.addCompletedHandler { [weak self] _ in
+                self?.engine?.acknowledge(generation)
+            }
         }
         cb.commit()
 
