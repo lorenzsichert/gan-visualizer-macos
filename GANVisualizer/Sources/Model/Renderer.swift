@@ -33,6 +33,7 @@ final class Renderer: NSObject, MTKViewDelegate {
 
     private var lastTime: Double = CACurrentMediaTime()
     private var lastGeneration = -1
+    private var currentTexture: MTLTexture?
     private var frames = 0
     private var statWindow: Double = CACurrentMediaTime()
     private var inferSum = 0.0
@@ -83,12 +84,15 @@ final class Renderer: NSObject, MTKViewDelegate {
               let rpd = view.currentRenderPassDescriptor,
               let cb = commandQueue.makeCommandBuffer() else { return }
 
-        var texture = fallbackTexture
+        // Keep drawing the most recent frame until a newer one is produced;
+        // otherwise draws between two produced frames would show the fallback.
+        var texture = currentTexture ?? fallbackTexture
         let size = engine?.currentImageSize() ?? (width: 512, height: 512)
         let imgW = Swift.max(1, size.width)
         let imgH = Swift.max(1, size.height)
         var consumedGeneration: Int?
         if let frame = engine?.latestFrame(), frame.generation != lastGeneration {
+            currentTexture = frame.texture
             texture = frame.texture
             lastGeneration = frame.generation
             consumedGeneration = frame.generation
