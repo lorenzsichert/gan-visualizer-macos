@@ -35,6 +35,9 @@ final class AppState: ObservableObject {
                 self?.fps = fps
                 self?.inferMs = infer
             }
+            eng.onError = { [weak self] msg in
+                Task { @MainActor in self?.modelManager.errorMessage = msg }
+            }
         }
         Task { [weak self] in
             guard let self else { return }
@@ -60,7 +63,7 @@ final class AppState: ObservableObject {
     func load(_ model: HFModel) async {
         await modelManager.ensureLoaded(model, engine: engine)
         if modelManager.selected?.id == model.id {
-            latentEngine.resize(dim: engine.inputDim,
+            latentEngine.resize(dim: engine.currentInputDim(),
                                 truncation: settings.get("Truncation"),
                                 motionRandomness: settings.get("Motion Randomness"))
             modelReady = true

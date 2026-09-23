@@ -69,10 +69,6 @@ final class Renderer: NSObject, MTKViewDelegate {
         self.fallbackTexture = fallback
         self.engine = engine
         super.init()
-        engine.onInferTime = { [weak self] ms in
-            self?.inferSum += ms
-            self?.inferCount += 1
-        }
     }
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
@@ -89,8 +85,9 @@ final class Renderer: NSObject, MTKViewDelegate {
               let cb = commandQueue.makeCommandBuffer() else { return }
 
         var texture = fallbackTexture
-        let imgW = Swift.max(1, engine?.outW ?? 512)
-        let imgH = Swift.max(1, engine?.outH ?? 512)
+        let size = engine?.currentImageSize() ?? (width: 512, height: 512)
+        let imgW = Swift.max(1, size.width)
+        let imgH = Swift.max(1, size.height)
         if let frame = engine?.latestFrame(), frame.generation != lastGeneration {
             texture = frame.texture
             lastGeneration = frame.generation
@@ -119,6 +116,8 @@ final class Renderer: NSObject, MTKViewDelegate {
 
         // Stats: ~2×/s.
         frames += 1
+        let ms = engine?.currentInferMs() ?? 0
+        if ms > 0 { inferSum += ms; inferCount += 1 }
         if now - statWindow >= 0.5 {
             let fps = Double(frames) / (now - statWindow)
             let infer = inferCount > 0 ? inferSum / Double(inferCount) : 0
