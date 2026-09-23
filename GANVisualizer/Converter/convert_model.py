@@ -132,50 +132,77 @@ def fix_rank6(model):
         if not S or len(S) < 6:
             continue
         cons = consumers.get(r.output[0], [])
-        if len(cons) != 1 or cons[0].op_type != "Pad":
+        if len(cons) != 1:
             continue
-        pad = cons[0]
-        if pad.input[1] not in inits:
-            continue
-        pads = [int(v) for v in numpy_helper.to_array(inits[pad.input[1]]).reshape(-1)]
-        pad_cons = consumers.get(pad.output[0], [])
-        if len(pad_cons) != 1 or pad_cons[0].op_type != "Reshape":
-            continue
-        r2 = pad_cons[0]
+        mid = cons[0]
         n = len(S)
-        begins, ends = pads[:n], pads[n:]
 
-        if all(v == 0 for v in pads):
+        # The upsample can be expressed either as a zero-pad or a nearest
+        # tile/broadcast; collect the per-dimension expansion factor.
+        if mid.op_type == "Pad" and len(mid.input) > 1 and mid.input[1] in inits:
+            pads = [int(v) for v in numpy_helper.to_array(inits[mid.input[1]]).reshape(-1)]
+            if len(pads) != 2 * n:
+                continue
+            begins, ends = pads[:n], pads[n:]
+            factors = [1 + begins[i] + ends[i] for i in range(n)]
+            kind = "pad"
+        elif mid.op_type == "Tile" and len(mid.input) > 1 and mid.input[1] in inits:
+            reps = [int(v) for v in numpy_helper.to_array(inits[mid.input[1]]).reshape(-1)]
+            if len(reps) != n:
+                continue
+            factors = list(reps)
+            kind = "tile"
+        else:
+            continue
+
+        mid_cons = consumers.get(mid.output[0], [])
+        if len(mid_cons) != 1 or mid_cons[0].op_type != "Reshape":
+            continue
+        r2 = mid_cons[0]
+
+        # No-op expansion -> pure shape round-trip.
+        if all(f == 1 for f in factors):
             r2.input[0] = r.input[0]
-            to_remove.update([r.name, pad.name])
+            to_remove.update([r.name, mid.name])
             continue
 
         singles = [i for i, s in enumerate(S) if s == 1 and i != 0]
         if len(singles) != 2:
             continue
         a_dim, b_dim = singles
-        if any(v for i, v in enumerate(pads) if i % n not in (a_dim, b_dim)):
+        if any(factors[i] != 1 for i in range(n) if i not in singles):
             continue
-        a = begins[a_dim] + ends[a_dim]
-        b = begins[b_dim] + ends[b_dim]
+        fa, fb = factors[a_dim], factors[b_dim]
+        if fa < 1 or fb < 1:
+            continue
         real = [d for i, d in enumerate(S) if i not in singles]
         B, C, H, W = real
+        H1 = H * fa
+        W1 = W * fb
+
+        def apply_mid(src, out_name, dim_index, factor):
+            if kind == "pad":
+                pads5 = [0] * 10
+                pads5[5 + dim_index] = factor - 1
+                init = new_init("p", pads5)
+                return new_node("Pad", [src, init], out_name, mode="constant")
+            reps5 = [1, 1, 1, 1, 1]
+            reps5[dim_index] = factor
+            init = new_init("t", reps5)
+            return new_node("Tile", [src, init], out_name)
 
         created = []
         s1 = new_init("s1", [B, C, H, 1, W])
         o1 = f"rw_o1_{uid[0]}"; created.append(new_node("Reshape", [r.input[0], s1], o1)); uid[0] += 1
-        p1 = new_init("p1", [0, 0, 0, 0, 0, 0, 0, 0, a, 0])
-        o2 = f"rw_o2_{uid[0]}"; created.append(new_node("Pad", [o1, p1], o2, mode="constant")); uid[0] += 1
-        H1 = H * (1 + a)
+        o2 = f"rw_o2_{uid[0]}"; created.append(apply_mid(o1, o2, 3, fa)); uid[0] += 1
         s2 = new_init("s2", [B, C, H1, W])
         o3 = f"rw_o3_{uid[0]}"; created.append(new_node("Reshape", [o2, s2], o3)); uid[0] += 1
         s3 = new_init("s3", [B, C, H1, W, 1])
         o4 = f"rw_o4_{uid[0]}"; created.append(new_node("Reshape", [o3, s3], o4)); uid[0] += 1
-        p2 = new_init("p2", [0, 0, 0, 0, 0, 0, 0, 0, 0, b])
-        o5 = f"rw_o5_{uid[0]}"; created.append(new_node("Pad", [o4, p2], o5, mode="constant")); uid[0] += 1
+        o5 = f"rw_o5_{uid[0]}"; created.append(apply_mid(o4, o5, 4, fb)); uid[0] += 1
         r2.input[0] = o5
         replacements[r.name] = created
-        to_remove.update([r.name, pad.name])
+        to_remove.update([r.name, mid.name])
 
     if replacements or to_remove:
         rebuilt = []
