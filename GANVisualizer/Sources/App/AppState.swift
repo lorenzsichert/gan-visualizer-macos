@@ -16,8 +16,8 @@ final class AppState: ObservableObject {
 
     @Published var fps: Double = 0
     @Published var inferMs: Double = 0
-    @Published var audioOn = false
-    @Published var demo = false
+    @Published var input: AudioInput = .off
+    @Published var inputError: String?
     @Published var mirrorMode: Int = 2
     @Published var panelCollapsed = false
     @Published var modelReady = false
@@ -38,6 +38,9 @@ final class AppState: ObservableObject {
             eng.onError = { [weak self] msg in
                 Task { @MainActor in self?.modelManager.errorMessage = msg }
             }
+            audio.onError = { [weak self] msg in
+                Task { @MainActor in self?.inputError = msg }
+            }
         }
         Task { [weak self] in
             guard let self else { return }
@@ -52,7 +55,7 @@ final class AppState: ObservableObject {
         guard engine != nil, engine.isLoaded else { return }
         var z = latentEngine.computeLatent(
             dt: dt, nowSec: now, settings: settings,
-            audio: audio, demo: demo, sampleRate: audio.lastSampleRate)
+            audio: audio, demo: input == .demo, sampleRate: audio.lastSampleRate)
         latentEngine.buildPulseInjection(into: &pulse, settings: settings)
         if !pulse.isEmpty {
             for i in 0..<z.count { z[i] += pulse[i % pulse.count] }
@@ -70,17 +73,27 @@ final class AppState: ObservableObject {
         }
     }
 
-    func toggleMic() {
-        if audioOn {
-            audio.stop()
-            audioOn = false
-        } else {
-            Task {
-                do {
-                    try await audio.start()
-                    audioOn = true
-                } catch {
-                    modelManager.errorMessage = "Microphone unavailable: \(error.localizedDescription)"
+    func setInput(_ new: AudioInput) {
+        guard new != input else { return }
+        input = new
+        inputError = nil
+        Task { [weak self] in
+            guard let self else { return }
+            self.audio.stop()
+            switch new {
+            case .off, .demo:
+                break
+            case .microphone:
+                do { try await self.audio.startMicrophone() }
+                catch {
+                    self.inputError = error.localizedDescription
+                    self.input = .off
+                }
+            case .system:
+                do { try await self.audio.startSystemAudio() }
+                catch {
+                    self.inputError = error.localizedDescription
+                    self.input = .off
                 }
             }
         }

@@ -69,6 +69,20 @@ The `direct` strategy is tried first; if the graph needs constant folding the
 | `abstract_photo` | 512×512 | float16 | ~1.3 ms (ANE) |
 | `flowers_big` (StyleGAN2) | 256×256 | float32 | ~28 ms |
 
+## Audio input
+
+The control panel's **Input** selector offers:
+
+- **Mic** — `AVAudioEngine` input tap with a sliding 2048-sample window (~2.7 ms).
+- **System** — all system audio via `ScreenCaptureKit`. Requires **Screen
+  Recording** permission (System Settings › Privacy & Security › Screen
+  Recording); grant it and relaunch the app.
+- **Demo** — a synthesized signal, for testing without any capture.
+- **Off**.
+
+Every source feeds the same `SpectrumAnalyzer` (one vDSP 2048-point FFT on a
+dedicated thread), so microphone and system audio have identical DSP cost.
+
 ## Architecture
 
 | Piece | File |

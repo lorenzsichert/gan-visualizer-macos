@@ -93,7 +93,10 @@ struct ControlPanel: View {
             HStack(spacing: 12) {
                 stat("FPS", state.fps > 0 ? String(Int(state.fps.rounded())) : "--", accent: state.fps > 0)
                 stat("Infer", state.inferMs > 0 ? String(format: "%.1fms", state.inferMs) : "--", accent: false)
-                stat("Audio", state.audioOn ? "on" : (state.demo ? "demo" : "off"), accent: state.audioOn || state.demo)
+                stat("Audio", audioLabel, accent: state.input != .off)
+            }
+            if let err = state.inputError {
+                Text(err).font(.caption2).foregroundStyle(.red).lineLimit(3)
             }
             if let err = state.modelManager.errorMessage {
                 Text(err).font(.caption2).foregroundStyle(.red).lineLimit(3)
@@ -115,26 +118,17 @@ struct ControlPanel: View {
     // MARK: - Actions
 
     private var actionsSection: some View {
-        VStack(spacing: 8) {
-            Button {
-                state.toggleMic()
-            } label: {
-                Label(state.audioOn ? "Microphone: ON" : "Enable Microphone",
-                      systemImage: "mic.fill")
-                    .frame(maxWidth: .infinity)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Input").font(.caption2).foregroundStyle(.secondary)
+            Picker("Input", selection: Binding(get: { state.input }, set: { state.setInput($0) })) {
+                ForEach(AudioInput.allCases) { option in
+                    Text(option.label).tag(option)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(state.audioOn ? .green : .accentColor)
+            .pickerStyle(.segmented)
+            .labelsHidden()
 
             HStack(spacing: 8) {
-                Button {
-                    state.demo.toggle()
-                } label: {
-                    Label("Demo", systemImage: "waveform").frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(state.demo ? .green : nil)
-
                 Button {
                     state.toggleFullscreen()
                 } label: {
@@ -152,6 +146,15 @@ struct ControlPanel: View {
                 .buttonStyle(.bordered)
                 .tint(state.mirrorMode != 0 ? .accentColor : nil)
             }
+        }
+    }
+
+    private var audioLabel: String {
+        switch state.input {
+        case .off: return "off"
+        case .demo: return "demo"
+        case .microphone: return "mic"
+        case .system: return "system"
         }
     }
 

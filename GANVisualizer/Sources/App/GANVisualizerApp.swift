@@ -19,12 +19,18 @@ struct GANVisualizerApp: App {
                     .keyboardShortcut("f", modifiers: [.command, .control])
                 Button("Cycle Mirror Mode") { state.cycleMirror() }
                     .keyboardShortcut("m", modifiers: [.command, .shift])
-                Button(state.audioOn ? "Disable Microphone" : "Enable Microphone") {
-                    state.toggleMic()
+                Button(state.input == .microphone ? "Disable Microphone" : "Enable Microphone") {
+                    state.setInput(state.input == .microphone ? .off : .microphone)
                 }
                 .keyboardShortcut("u", modifiers: [.command, .shift])
-                Button("Toggle Demo Signal") { state.demo.toggle() }
-                    .keyboardShortcut("d", modifiers: [.command, .shift])
+                Button(state.input == .system ? "Disable System Audio" : "Enable System Audio") {
+                    state.setInput(state.input == .system ? .off : .system)
+                }
+                .keyboardShortcut("s", modifiers: [.command, .shift])
+                Button("Toggle Demo Signal") {
+                    state.setInput(state.input == .demo ? .off : .demo)
+                }
+                .keyboardShortcut("d", modifiers: [.command, .shift])
             }
         }
     }
