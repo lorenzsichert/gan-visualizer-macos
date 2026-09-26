@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04649CF799AF41DBF0A2852B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 188D442A3783932E9860143E /* Assets.xcassets */; };
 		1989BCB775691ECE4925A6B1 /* ControlPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297D6B6E649F367B4A0CEEAF /* ControlPanel.swift */; };
 		29F12F66AD987DF649A9BAB3 /* LSDLatent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C785A1C63E80131A9A99AF /* LSDLatent.swift */; };
 		335556932F2A143664092D69 /* GANVisualizerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15A878E5615BF46DA5F9657 /* GANVisualizerApp.swift */; };
@@ -16,9 +17,11 @@
 		825C170EA6E2BC250D7F091D /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E02640934A12EAE6718D0D98 /* Renderer.swift */; };
 		9221A95D24BB908261FCD01C /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1EA1BC999378BF2A7807AF /* AppState.swift */; };
 		98C6433146578FF42D18AB3C /* AudioPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70834630B81F226D86252302 /* AudioPipeline.swift */; };
+		9C9A302D793A90AC02C80369 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 40DDC0D16BEDCCA3E086F5ED /* AppIcon.icns */; };
 		9D02CF225EA7F55366D566EA /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 87CE0F7D81D5562DA2F75B3A /* Shaders.metal */; };
 		A32ABB00BCCEB894D5983526 /* convert_model.py in Resources */ = {isa = PBXBuildFile; fileRef = B7448EF5181BCE2A2C452202 /* convert_model.py */; };
 		BD0A5FB3822F719F04220A01 /* Converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70099A41D8AA2D45E6DD125A /* Converter.swift */; };
+		BEC75BED9963CE821C51E131 /* RSS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552C8B8976B93A75A23575E8 /* RSS.swift */; };
 		C396EBEA9854445D2160B137 /* setup_converter.sh in Resources */ = {isa = PBXBuildFile; fileRef = B15D4874309ABAADD26B4F9A /* setup_converter.sh */; };
 		DB2EDF97BE539CF6683B3A35 /* requirements.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9248021C3EA14ADB89353528 /* requirements.txt */; };
 		E747135AD8C69886CCE4FE61 /* InferenceEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63BED49B70B4A5CA3C86849D /* InferenceEngine.swift */; };
@@ -27,7 +30,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		188D442A3783932E9860143E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		297D6B6E649F367B4A0CEEAF /* ControlPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPanel.swift; sourceTree = "<group>"; };
+		40DDC0D16BEDCCA3E086F5ED /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		552C8B8976B93A75A23575E8 /* RSS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSS.swift; sourceTree = "<group>"; };
 		5AFE4EFB2D624939E532A556 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		63BED49B70B4A5CA3C86849D /* InferenceEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferenceEngine.swift; sourceTree = "<group>"; };
 		64770C1D077FFF25F4530441 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
@@ -59,6 +65,8 @@
 		17EF8CBE265EE4B50791F784 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				40DDC0D16BEDCCA3E086F5ED /* AppIcon.icns */,
+				188D442A3783932E9860143E /* Assets.xcassets */,
 				87CE0F7D81D5562DA2F75B3A /* Shaders.metal */,
 			);
 			path = Resources;
@@ -122,6 +130,7 @@
 			children = (
 				8B1EA1BC999378BF2A7807AF /* AppState.swift */,
 				C15A878E5615BF46DA5F9657 /* GANVisualizerApp.swift */,
+				552C8B8976B93A75A23575E8 /* RSS.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -196,6 +205,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9C9A302D793A90AC02C80369 /* AppIcon.icns in Resources */,
+				04649CF799AF41DBF0A2852B /* Assets.xcassets in Resources */,
 				A32ABB00BCCEB894D5983526 /* convert_model.py in Resources */,
 				DB2EDF97BE539CF6683B3A35 /* requirements.txt in Resources */,
 				C396EBEA9854445D2160B137 /* setup_converter.sh in Resources */,
@@ -219,6 +230,7 @@
 				29F12F66AD987DF649A9BAB3 /* LSDLatent.swift in Sources */,
 				FD31B921C92E5A62497E62BA /* LatentEngine.swift in Sources */,
 				F61BD7C2131BC71CB364820A /* ModelManager.swift in Sources */,
+				BEC75BED9963CE821C51E131 /* RSS.swift in Sources */,
 				825C170EA6E2BC250D7F091D /* Renderer.swift in Sources */,
 				3A833EBD935222F1995CB1D3 /* Settings.swift in Sources */,
 				9D02CF225EA7F55366D566EA /* Shaders.metal in Sources */,

@@ -40,8 +40,13 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         ENABLE_PREVIEWS: YES
         COMBINE_HIDPI_IMAGES: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     entitlements:
       path: GANVisualizer/GANVisualizer.entitlements
+      properties:
+        # Microphone access under the hardened runtime / sandbox. Screen &
+        # System Audio Recording is TCC-gated and has no entitlement.
+        com.apple.security.device.audio-input: true
 
 schemes:
   GANVisualizer:

@@ -49,6 +49,37 @@ final class AppState: ObservableObject {
                 await self.load(first)
             }
         }
+        if let mode = ProcessInfo.processInfo.environment["GAN_LEAK"] {
+            if mode != "rss" {
+                Task { [weak self] in
+                    var lastGen = -1
+                    while true {
+                        guard let self else { return }
+                        if mode != "infer" {
+                            _ = self.latentEngine.computeLatent(
+                                dt: 1.0 / 60.0, nowSec: ProcessInfo.processInfo.systemUptime,
+                                settings: self.settings, audio: self.audio, demo: true, sampleRate: 48000)
+                        }
+                        if mode != "latent" {
+                            var z = [Float](repeating: 0, count: self.engine.currentInputDim())
+                            if mode == "infervar" { for i in z.indices { z[i] = Float(i % 7) } }
+                            self.engine.submit(z: z, tanh: false, hue: 0)
+                        }
+                        if let f = self.engine.latestFrame(), f.generation != lastGen {
+                            lastGen = f.generation
+                            self.engine.acknowledge(f.generation)
+                        }
+                        try? await Task.sleep(nanoseconds: 16_000_000)
+                    }
+                }
+            }
+            Task {
+                while true {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    NSLog("GANLEAK \(mode) rss=\(String(format: "%.1f", rssMB()))MB")
+                }
+            }
+        }
     }
 
     func tick(dt: Double, now: Double) {

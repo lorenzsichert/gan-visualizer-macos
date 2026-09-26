@@ -14,6 +14,10 @@
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleDisplayName</key>
 	<string>GAN Visualizer</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,6 +32,10 @@
 	<string>NSApplication</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>GAN Visualizer uses the microphone to drive the generated visuals in real time.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>GAN Visualizer captures system audio (screen content is never recorded) to drive the generated visuals in real time.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>GAN Visualizer captures system audio to drive the generated visuals in real time.</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
 	<key>LSApplicationCategoryType</key>

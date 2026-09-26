@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import Accelerate
+import CoreAudio
 import CoreMedia
 import ScreenCaptureKit
 import CoreGraphics
@@ -147,9 +148,17 @@ final class AudioPipeline {
     private(set) var msgCount = 0
 
     private var engine: AVAudioEngine?
+    private var sinkNode: AVAudioSinkNode?
+    private var tapHelper: CoreAudioTapCapture?
     private var stream: SCStream?
     private var systemHelper: SystemAudioCapture?
-    private let systemQueue = DispatchQueue(label: "com.jakobsichert.GANVisualizer.systemaudio")
+    // Audio must preempt everything else, so its delivery queue runs at
+    // `.userInteractive`; the (unused, 1 fps, 2×2) video output gets its own
+    // lower-priority queue so video can never back-pressure the audio path.
+    private let systemQueue = DispatchQueue(
+        label: "com.jakobsichert.GANVisualizer.systemaudio", qos: .userInteractive)
+    private let screenQueue = DispatchQueue(
+        label: "com.jakobsichert.GANVisualizer.systemvideo", qos: .utility)
 
     var onError: ((String) -> Void)?
 
@@ -166,35 +175,81 @@ final class AudioPipeline {
 
         let engine = AVAudioEngine()
         let input = engine.inputNode
+        // An `AVAudioSinkNode` performs no format conversion, so it must be
+        // connected with the input node's output-scope (hardware) format.
         let format = input.outputFormat(forBus: 0)
         guard format.channelCount > 0, format.sampleRate > 0 else { throw AudioError.noInput }
 
         lastSampleRate = format.sampleRate
         analyzer.reset()
-        input.installTap(onBus: 0, bufferSize: 128, format: format) { [weak self] buffer, _ in
-            guard let self, let ch = buffer.floatChannelData, buffer.frameLength > 0 else { return }
-            self.analyzer.process(ch[0], Int(buffer.frameLength))
-            self.msgCount += 1
+
+        // `inputNode.installTap` batches delivery into large buffers on macOS
+        // (commonly ~100 ms, and it ignores the requested buffer size), which
+        // would put a hard floor under the visualizer's reaction time. A sink
+        // node instead receives the raw hardware IO buffer — a handful of
+        // milliseconds — directly on the CoreAudio real-time thread, so the
+        // sliding-window spectrum is refreshed with the least possible delay.
+        // The block only does the preallocated analyzer work (no allocation).
+        let analyzer = self.analyzer
+        let sink = AVAudioSinkNode { [weak self] _, frameCount, inputData -> OSStatus in
+            let abl = UnsafeMutableAudioBufferListPointer(
+                UnsafeMutablePointer(mutating: inputData))
+            guard let buffer = abl.first, let mData = buffer.mData else { return noErr }
+            let frames = Swift.min(Int(frameCount),
+                                   Int(buffer.mDataByteSize) / MemoryLayout<Float>.size)
+            guard frames > 0 else { return noErr }
+            analyzer.process(mData.assumingMemoryBound(to: Float.self), frames)
+            self?.msgCount += 1
+            return noErr
         }
+        engine.attach(sink)
+        engine.connect(input, to: sink, format: format)
         engine.prepare()
         try engine.start()
         self.engine = engine
+        self.sinkNode = sink
         running = true
     }
 
     // MARK: - System audio
 
+    /// Starts the lowest-latency system-audio source available: a Core Audio
+    /// process tap on macOS 14.2+ (sub-20 ms), falling back to ScreenCaptureKit
+    /// (~20–50 ms) when the tap is unavailable or cannot be created.
     func startSystemAudio() async throws {
         stop()
-        if !CGPreflightScreenCaptureAccess() {
-            _ = CGRequestScreenCaptureAccess()
+
+        if #available(macOS 14.2, *) {
+            let helper = CoreAudioTapCapture(analyzer: analyzer)
+            helper.onSampleRate = { [weak self] sr in self?.lastSampleRate = sr }
+            helper.onBuffer = { [weak self] in self?.msgCount += 1 }
+            do {
+                try helper.start()
+                analyzer.reset()
+                tapHelper = helper
+                running = true
+                return
+            } catch {
+                NSLog("GANVisualizer: Core Audio tap unavailable (\(error.localizedDescription)); falling back to ScreenCaptureKit")
+            }
+        }
+
+        try await startScreenCaptureAudio()
+    }
+
+    private func startScreenCaptureAudio() async throws {
+        guard Self.requestScreenRecordingPermission() else {
+            throw AudioError.screenPermission
         }
 
         let content: SCShareableContent
         do {
             content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         } catch {
-            throw AudioError.screenPermission
+            // Preflight passed, so this is a real capture failure rather than a
+            // permission denial — surface the underlying reason.
+            throw AudioError.captureFailed(
+                "Could not read screen content for system audio: \(error.localizedDescription)")
         }
         guard let display = content.displays.first else { throw AudioError.captureFailed("no display available for system audio") }
 
@@ -209,6 +264,9 @@ final class AudioPipeline {
         config.width = 2
         config.height = 2
         config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
+        // Keep only two frames buffered; the default (3) adds avoidable
+        // capture latency for no benefit here.
+        config.queueDepth = 2
 
         let helper = SystemAudioCapture(analyzer: analyzer)
         helper.onSampleRate = { [weak self] sr in self?.lastSampleRate = sr }
@@ -216,6 +274,10 @@ final class AudioPipeline {
         helper.onError = { [weak self] msg in self?.onError?(msg) }
         let stream = SCStream(filter: filter, configuration: config, delegate: helper)
         try stream.addStreamOutput(helper, type: .audio, sampleHandlerQueue: systemQueue)
+        // Also drain the (tiny) video output on its own queue: ScreenCaptureKit
+        // otherwise reports a dropped frame for every frame, and keeping the
+        // video path off the audio queue guarantees it can never delay audio.
+        try stream.addStreamOutput(helper, type: .screen, sampleHandlerQueue: screenQueue)
         try await stream.startCapture()
 
         lastSampleRate = 48000
@@ -229,10 +291,19 @@ final class AudioPipeline {
 
     func stop() {
         if let engine {
-            engine.inputNode.removeTap(onBus: 0)
             engine.stop()
+            if let sink = sinkNode {
+                engine.disconnectNodeOutput(engine.inputNode)
+                engine.detach(sink)
+            }
         }
         engine = nil
+        sinkNode = nil
+
+        if #available(macOS 14.2, *) {
+            tapHelper?.stop()
+        }
+        tapHelper = nil
 
         if let stream {
             let s = stream
@@ -243,6 +314,13 @@ final class AudioPipeline {
 
         running = false
         analyzer.reset()
+    }
+
+    private static func requestScreenRecordingPermission() -> Bool {
+        if CGPreflightScreenCaptureAccess() { return true }
+        // Shows the TCC prompt on first use and returns the decision. ScreenCap-
+        // tureKit may still need an app relaunch before it delivers content.
+        return CGRequestScreenCaptureAccess()
     }
 
     private static func requestMicPermission() async -> Bool {
@@ -272,40 +350,199 @@ private final class SystemAudioCapture: NSObject, SCStreamOutput, SCStreamDelega
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        guard type == .audio, sampleBuffer.isValid else { return }
-        guard let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer),
-              let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc) else { return }
-        // Only float PCM is expected from ScreenCaptureKit.
-        guard (asbd.pointee.mFormatFlags & kAudioFormatFlagIsFloat) != 0 else { return }
+        // The sample queue runs continuously, so drain per-buffer autoreleased
+        // CoreMedia objects instead of letting them accumulate.
+        autoreleasepool {
+            guard type == .audio, sampleBuffer.isValid else { return }
+            guard let formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer),
+                  let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(formatDesc) else { return }
+            // Only float PCM is expected from ScreenCaptureKit.
+            guard (asbd.pointee.mFormatFlags & kAudioFormatFlagIsFloat) != 0 else { return }
 
-        let channels = Int(asbd.pointee.mChannelsPerFrame)
-        let frames = CMSampleBufferGetNumSamples(sampleBuffer)
-        guard channels > 0, frames > 0 else { return }
+            let channels = Int(asbd.pointee.mChannelsPerFrame)
+            let frames = CMSampleBufferGetNumSamples(sampleBuffer)
+            guard channels > 0, frames > 0 else { return }
 
-        let abl = AudioBufferList.allocate(maximumBuffers: channels)
-        defer { free(abl.unsafeMutablePointer) }
-        var blockBuffer: CMBlockBuffer?
-        let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
-            sampleBuffer,
-            bufferListSizeNeededOut: nil,
-            bufferListOut: abl.unsafeMutablePointer,
-            bufferListSize: AudioBufferList.sizeInBytes(maximumBuffers: channels),
-            blockBufferAllocator: kCFAllocatorDefault,
-            blockBufferMemoryAllocator: kCFAllocatorDefault,
-            flags: kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment,
-            blockBufferOut: &blockBuffer)
-        guard status == noErr else { return }
+            let abl = AudioBufferList.allocate(maximumBuffers: channels)
+            defer { free(abl.unsafeMutablePointer) }
+            var blockBuffer: CMBlockBuffer?
+            let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(
+                sampleBuffer,
+                bufferListSizeNeededOut: nil,
+                bufferListOut: abl.unsafeMutablePointer,
+                bufferListSize: AudioBufferList.sizeInBytes(maximumBuffers: channels),
+                blockBufferAllocator: kCFAllocatorDefault,
+                blockBufferMemoryAllocator: kCFAllocatorDefault,
+                flags: kCMSampleBufferFlag_AudioBufferList_Assure16ByteAlignment,
+                blockBufferOut: &blockBuffer)
+            guard status == noErr else { return }
 
-        let buffer = abl[0]
-        guard let mData = buffer.mData else { return }
-        let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
-        guard count > 0 else { return }
-        analyzer.process(mData.bindMemory(to: Float.self, capacity: count), count)
-        onSampleRate?(asbd.pointee.mSampleRate)
-        onBuffer?()
+            let buffer = abl[0]
+            guard let mData = buffer.mData else { return }
+            let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+            guard count > 0 else { return }
+            analyzer.process(mData.bindMemory(to: Float.self, capacity: count), count)
+            onSampleRate?(asbd.pointee.mSampleRate)
+            onBuffer?()
+        }
     }
 
     func stream(_ stream: SCStream, didStopWithError error: Error) {
         onError?("System audio capture stopped: \(error.localizedDescription)")
+    }
+}
+
+/// Receives PCM from a Core Audio process tap (macOS 14.2+,
+/// `AudioHardwareCreateProcessTap`). The tap is exposed to clients through a
+/// private, tap-only aggregate device whose IO block runs on the Core Audio
+/// real-time thread — the lowest-latency public route to system output, with
+/// none of ScreenCaptureKit's sample-handler buffering.
+private final class CoreAudioTapCapture {
+
+    private let analyzer: SpectrumAnalyzer
+    private var tapID = AudioObjectID(kAudioObjectUnknown)
+    private var aggregateID = AudioObjectID(kAudioObjectUnknown)
+    private var ioProcID: AudioDeviceIOProcID?
+
+    var onSampleRate: ((Double) -> Void)?
+    var onBuffer: (() -> Void)?
+
+    init(analyzer: SpectrumAnalyzer) {
+        self.analyzer = analyzer
+    }
+
+    @available(macOS 14.2, *)
+    func start() throws {
+        let description = CATapDescription()
+        description.name = "GAN Visualizer System Audio"
+        description.isPrivate = true
+        description.muteBehavior = .unmuted
+        // Global tap of every other process, mixed to mono. The app renders no
+        // audio, so there is nothing to feed back into the tap.
+        description.isExclusive = true
+        description.processes = []
+        description.isMixdown = true
+        description.isMono = true
+
+        var tap = AudioObjectID(kAudioObjectUnknown)
+        let tapStatus = AudioHardwareCreateProcessTap(description, &tap)
+        guard tapStatus == noErr, tap != kAudioObjectUnknown else {
+            throw AudioError.captureFailed(
+                "Core Audio tap creation failed (status \(tapStatus)) — is System Audio Recording allowed?")
+        }
+        tapID = tap
+
+        do {
+            let format = try Self.tapFormat(tap)
+            guard (format.mFormatFlags & kAudioFormatFlagIsFloat) != 0,
+                  format.mChannelsPerFrame > 0, format.mSampleRate > 0 else {
+                throw AudioError.captureFailed("Core Audio tap returned an unsupported format")
+            }
+            onSampleRate?(format.mSampleRate)
+
+            aggregateID = try Self.createAggregateDevice(tapUID: try Self.tapUID(tap))
+
+            // Passing no dispatch queue invokes the block directly on Core
+            // Audio's real-time thread, with no extra scheduling hop.
+            let analyzer = self.analyzer
+            var proc: AudioDeviceIOProcID?
+            let ioStatus = AudioDeviceCreateIOProcIDWithBlock(&proc, aggregateID, nil) {
+                [weak self] _, inputData, _, _, _ in
+                let abl = UnsafeMutableAudioBufferListPointer(
+                    UnsafeMutablePointer(mutating: inputData))
+                // Mono mixdown, so the first buffer holds the samples.
+                guard let buffer = abl.first, let mData = buffer.mData else { return }
+                let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+                guard count > 0 else { return }
+                analyzer.process(mData.assumingMemoryBound(to: Float.self), count)
+                self?.onBuffer?()
+            }
+            guard ioStatus == noErr, let proc else {
+                throw AudioError.captureFailed("Core Audio IO proc creation failed (status \(ioStatus))")
+            }
+            ioProcID = proc
+
+            let startStatus = AudioDeviceStart(aggregateID, proc)
+            guard startStatus == noErr else {
+                throw AudioError.captureFailed("Core Audio tap start failed (status \(startStatus))")
+            }
+        } catch {
+            stop()
+            throw error
+        }
+    }
+
+    @available(macOS 14.2, *)
+    func stop() {
+        if aggregateID != kAudioObjectUnknown, let ioProcID {
+            AudioDeviceStop(aggregateID, ioProcID)
+            AudioDeviceDestroyIOProcID(aggregateID, ioProcID)
+        }
+        ioProcID = nil
+        if aggregateID != kAudioObjectUnknown {
+            AudioHardwareDestroyAggregateDevice(aggregateID)
+            aggregateID = AudioObjectID(kAudioObjectUnknown)
+        }
+        if tapID != kAudioObjectUnknown {
+            AudioHardwareDestroyProcessTap(tapID)
+            tapID = AudioObjectID(kAudioObjectUnknown)
+        }
+    }
+
+    @available(macOS 14.2, *)
+    private static func tapFormat(_ tap: AudioObjectID) throws -> AudioStreamBasicDescription {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioTapPropertyFormat,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var asbd = AudioStreamBasicDescription()
+        var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+        let status = AudioObjectGetPropertyData(tap, &address, 0, nil, &size, &asbd)
+        guard status == noErr else {
+            throw AudioError.captureFailed("Could not read Core Audio tap format (status \(status))")
+        }
+        return asbd
+    }
+
+    @available(macOS 14.2, *)
+    private static func tapUID(_ tap: AudioObjectID) throws -> String {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioTapPropertyUID,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var value: Unmanaged<CFString>?
+        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        let status = withUnsafeMutablePointer(to: &value) {
+            AudioObjectGetPropertyData(tap, &address, 0, nil, &size, $0)
+        }
+        guard status == noErr, let value else {
+            throw AudioError.captureFailed("Could not read Core Audio tap UID (status \(status))")
+        }
+        return value.takeRetainedValue() as String
+    }
+
+    @available(macOS 14.2, *)
+    private static func createAggregateDevice(tapUID: String) throws -> AudioObjectID {
+        // Tap-only aggregate (no main sub-device) so it is not pinned to the
+        // default output device's clock/rate.
+        let description: [String: Any] = [
+            kAudioAggregateDeviceNameKey: "GAN Visualizer System Audio",
+            kAudioAggregateDeviceUIDKey: UUID().uuidString,
+            kAudioAggregateDeviceIsPrivateKey: true,
+            kAudioAggregateDeviceIsStackedKey: false,
+            kAudioAggregateDeviceTapAutoStartKey: true,
+            kAudioAggregateDeviceTapListKey: [
+                [
+                    kAudioSubTapUIDKey: tapUID,
+                    kAudioSubTapDriftCompensationKey: true,
+                ],
+            ],
+        ]
+        var aggregate = AudioObjectID(kAudioObjectUnknown)
+        let status = AudioHardwareCreateAggregateDevice(description as CFDictionary, &aggregate)
+        guard status == noErr, aggregate != kAudioObjectUnknown else {
+            throw AudioError.captureFailed("Core Audio aggregate device creation failed (status \(status))")
+        }
+        return aggregate
     }
 }

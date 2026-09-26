@@ -73,15 +73,42 @@ The `direct` strategy is tried first; if the graph needs constant folding the
 
 The control panel's **Input** selector offers:
 
-- **Mic** — `AVAudioEngine` input tap with a sliding 2048-sample window (~2.7 ms).
-- **System** — all system audio via `ScreenCaptureKit`. Requires **Screen
-  Recording** permission (System Settings › Privacy & Security › Screen
-  Recording); grant it and relaunch the app.
+- **Mic** — `AVAudioEngine`, using an `AVAudioSinkNode` rather than an input
+  tap. A tap batches delivery into large buffers on macOS (and ignores the
+  requested buffer size), which adds ~100 ms before the visualizer hears
+  anything; the sink node receives the raw hardware IO buffer (a few ms)
+  directly on the CoreAudio real-time thread. The shared 2048-point sliding
+  window still means the spectrum itself reflects the last ~43 ms of audio at
+  48 kHz.
+- **System** — system output, preferring a **Core Audio process tap**
+  (`AudioHardwareCreateProcessTap`, macOS 14.2+), the lowest-latency public
+  route: a private, tap-only aggregate device whose IO block runs directly on
+  the Core Audio real-time thread, with none of ScreenCaptureKit's
+  sample-handler buffering. It carries its own **System Audio Recording**
+  permission (System Settings › Privacy & Security); grant it and relaunch. If
+  the tap is unavailable (macOS 14.0/14.1) or cannot be created — e.g. the
+  permission is still pending — the app falls back to **ScreenCaptureKit**,
+  which needs **Screen Recording** permission instead. The fallback stream uses
+  the minimum `queueDepth`, drains its 2×2 / 1 fps video output on a separate
+  low-priority queue (so video can never back-pressure audio), and delivers
+  audio on a `.userInteractive` queue.
+
+  Dev builds are ad-hoc signed, so macOS ties each grant to that build's
+  signature. After a rebuild the binary is a different "app" to TCC, so you may
+  have to reset and re-grant even though the toggle still looks enabled:
+  ```bash
+  tccutil reset ScreenCapture com.jakobsichert.GANVisualizer
+  ```
+  Signing with a stable identity (an Apple Development certificate, or a
+  self-signed cert trusted for code signing) makes the grant persist across
+  rebuilds.
 - **Demo** — a synthesized signal, for testing without any capture.
 - **Off**.
 
-Every source feeds the same `SpectrumAnalyzer` (one vDSP 2048-point FFT on a
-dedicated thread), so microphone and system audio have identical DSP cost.
+Every source feeds the same `SpectrumAnalyzer` — one vDSP 2048-point FFT per
+capture callback, run on the capture thread itself (the CoreAudio real-time
+thread for the mic and for the process tap) so no extra thread hop is added.
+Microphone and system audio therefore have identical DSP cost.
 
 ## Architecture
 

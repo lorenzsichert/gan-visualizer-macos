@@ -227,7 +227,12 @@ final class InferenceEngine {
             let hue = pendingHue
             lock.unlock()
 
-            let published = runFrame(z: z, tanh: tanh, hue: hue)
+            // CoreML hands back autoreleased Objective-C objects (the output
+            // `MLMultiArray`, feature providers, …) for every prediction.
+            // `pump()` loops for the lifetime of the app, so GCD's own pool
+            // never drains: without a per-frame pool those buffers pile up and
+            // RSS grows without bound as frames are generated.
+            let published = autoreleasepool { runFrame(z: z, tanh: tanh, hue: hue) }
             // Only wait for the renderer when we actually produced a frame; a
             // discarded (stale-epoch) frame must not block the pump.
             if published { ackSem.wait() }
