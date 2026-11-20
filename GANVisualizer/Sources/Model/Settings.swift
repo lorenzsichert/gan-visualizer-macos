@@ -53,13 +53,13 @@ final class SettingsStore: ObservableObject {
         "Motion Freq":        SettingDef("Motion", 135, 50, 16000, 5, 0),
         "Motion Width":       SettingDef("Motion", 1.30, 0.25, 4, 0.01, 2),
         "Pulse Smooth":       SettingDef("Pulse", 0.86, 0, 1, 0.01, 2),
-        "Hue Shift":          SettingDef("Post", 0.45, 0, 5.0, 0.01, 2),
+        "Hue Shift":          SettingDef("Post", 0.45, 0, 10.0, 0.01, 2),
         "Motion Power":       SettingDef("Motion", 1.39, 1.0, 2.0, 0.01, 2, hidden: true),
         "Smoothing Factor":   SettingDef("Timing", 1.0, 0, 1, 0.01, 2),
         "Noise Weight":       SettingDef("Input", 1.48, 0, 10, 0.01, 2, hidden: true),
         "Audio Weight":       SettingDef("Input", 0.1, 0, 2.0, 0.01, 2, hidden: true),
         "Audio Randomization": SettingDef("Input", 0.0, 0, 1, 0.01, 2, hidden: true),
-        "Preamp Gain":        SettingDef("Audio", -12.0, -60, 60, 0.5, 1),
+        "Preamp Gain":        SettingDef("Audio", -12.0, -30, 60, 0.5, 1),
         "Lowpass Sensivity":  SettingDef("Audio", 0.47, 0, 5.0, 0.01, 2, hidden: true),
         "Lowpass Cutoff":     SettingDef("Audio", 128, 0, 256, 1, 0, hidden: true),
         "Cutoff":             SettingDef("Audio", 0, 0, 100, 1, 0, hidden: true),
@@ -102,20 +102,5 @@ final class SettingsStore: ObservableObject {
             get: { [weak self] in self?.get(name) ?? 0 },
             set: { [weak self] in self?.set(name, $0) }
         )
-    }
-
-    /// Visible parameters belonging to a control tab.
-    func visibleKeys(tab: String) -> [String] {
-        Self.order.filter { key in
-            guard let d = Self.defs[key], !d.hidden else { return false }
-            return Self.tab(for: key) == tab
-        }
-    }
-
-    static func tab(for name: String) -> String {
-        if name.hasPrefix("Motion ") { return "motion" }
-        if name.hasPrefix("Pulse ") { return "pulse" }
-        if name.hasPrefix("Brightness ") { return "brightness" }
-        return "general"
     }
 }

@@ -19,6 +19,10 @@ struct GANVisualizerApp: App {
                     .keyboardShortcut("f", modifiers: [.command, .control])
                 Button("Cycle Mirror Mode") { state.cycleMirror() }
                     .keyboardShortcut("m", modifiers: [.command, .shift])
+                Button(state.paused ? "Resume Visualizer" : "Pause Visualizer") {
+                    state.togglePause()
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
                 Button(state.input == .microphone ? "Disable Microphone" : "Enable Microphone") {
                     state.setInput(state.input == .microphone ? .off : .microphone)
                 }

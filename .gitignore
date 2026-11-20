@@ -1,8 +1,5 @@
 .DS_Store
 DerivedData/
 build/
-GANVisualizer/Converter/.venv-converter/
-GANVisualizer/Converter/__pycache__/
-GANVisualizer/Converter/*.pyc
 GANVisualizer.xcodeproj/xcuserdata/
 GANVisualizer.xcodeproj/project.xcworkspace/xcuserdata/

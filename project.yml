@@ -24,12 +24,6 @@ targets:
     sources:
       - path: GANVisualizer/Sources
       - path: GANVisualizer/Resources
-      - path: GANVisualizer/Converter
-        buildPhase: resources
-        excludes:
-          - ".venv-converter/**"
-          - "__pycache__/**"
-          - "*.pyc"
     settings:
       base:
         INFOPLIST_FILE: GANVisualizer/Info.plist

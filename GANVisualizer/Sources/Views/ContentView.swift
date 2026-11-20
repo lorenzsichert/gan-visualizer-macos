@@ -19,22 +19,32 @@ struct ContentView: View {
 
                 if !state.panelCollapsed {
                     ControlPanel()
-                        .frame(width: 344)
+                        .frame(width: 320)
                         .transition(.move(edge: .trailing))
                 }
             }
 
             if state.panelCollapsed {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { state.panelCollapsed = false }
+                    withAnimation(.easeInOut(duration: 0.22)) { state.panelCollapsed = false }
                 } label: {
                     Image(systemName: "chevron.left.2")
-                        .font(.system(size: 15, weight: .semibold))
-                        .padding(10)
-                        .background(.ultraThinMaterial, in: Circle())
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(PanelTheme.textMuted)
+                        .frame(width: 34, height: 34)
+                        .background(
+                            RoundedRectangle(cornerRadius: 7)
+                                .fill(PanelTheme.surface)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7)
+                                .stroke(PanelTheme.lineStrong, lineWidth: 1)
+                        )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .padding(14)
+                .padding(12)
+                .help("Show panel")
             }
         }
         .ignoresSafeArea()

@@ -1,11 +1,11 @@
 # GAN Visualizer — macOS (CoreML)
 
 A native macOS port of the browser visualizer. It discovers the generator
-models on the Hugging Face Hub, downloads the ONNX files, **converts them to
-CoreML** (`.mlpackage`) with the bundled Python converter, caches the compiled
-model, and drives it from your microphone in real time. Rendering is Metal; the
-NCHW model output is turned into an RGBA texture (with the hue channel-roll) by
-a compute shader, and the audio→latent DSP runs in `AVAudioEngine` + vDSP.
+models on the Hugging Face Hub, downloads the ready-made **CoreML packages**
+from the repository's `coreml/` folder, compiles and caches them, and drives
+them from your microphone in real time. Rendering is Metal; the NCHW model
+output is turned into an RGBA texture (with the hue channel-roll) by a compute
+shader, and the audio→latent DSP runs in `AVAudioEngine` + vDSP.
 
 ## Requirements
 
@@ -15,13 +15,9 @@ a compute shader, and the audio→latent DSP runs in `AVAudioEngine` + vDSP.
   ```bash
   xcodebuild -downloadComponent MetalToolchain
   ```
-- Python 3 with the converter dependencies (`Converter/requirements.txt`):
-  `coremltools`, `onnx`, `onnx2torch`, `onnxruntime`, `torch`, `numpy`.
-  If they aren't importable by `python3`, create a venv:
-  ```bash
-  ./GANVisualizer/Converter/setup_converter.sh
-  export GAN_CONVERTER_PYTHON="$PWD/GANVisualizer/Converter/.venv-converter/bin/python3"
-  ```
+
+No Python, ONNX Runtime or other third-party dependencies are needed at build
+or run time — the models are already converted to CoreML and hosted on the Hub.
 
 ## Build & run
 
@@ -38,36 +34,46 @@ xcodebuild -project GANVisualizer.xcodeproj -scheme GANVisualizer \
            -configuration Release -destination 'platform=macOS' build
 ```
 
-On first launch the app fetches the model list, downloads the first model
-(~14–105 MB) and converts it to CoreML (a few seconds). Later launches reuse the
-cache in `~/Library/Application Support/GANVisualizer/Models/`.
+On first launch the app fetches the model list, downloads the first model's
+CoreML package (~6–145 MB) and compiles it. Later launches reuse the cache in
+`~/Library/Application Support/GANVisualizer/Models/`.
 
-## How the ONNX → CoreML conversion works
+## How model loading works
 
-`Converter/convert_model.py` runs the whole pipeline and streams JSON progress:
+All models live in the `coreml/` folder of the Hugging Face repository
+`lorenzsichert/gan-visualizer`. Each model has its own directory:
 
-1. **Download** the `.onnx` (the app does this with URLSession and progress).
-2. Optional ONNX Runtime **constant-fold** (`ORT_ENABLE_BASIC`) so weights that
-   are produced by `Transpose` nodes become plain initializers.
-3. **Normalize** the graph: relabel opset 18 → 13 (the ops already use opset-13
-   semantics), drop `Reshape` `allowzero`, and rewrite the StyleGAN2
-   rank-6 `Reshape → Pad → Reshape` zero-stuff upsample into rank-≤5 steps
-   (CoreML caps tensors at rank 5).
-4. `onnx2torch` → `torch.jit.trace`.
-5. `coremltools.convert` to an ML Program.
-6. **Validate** the CoreML output against the PyTorch reference and, if
-   float16 is too inaccurate (some StyleGAN2 demodulation graphs), re-convert in
-   float32 automatically. The chosen precision is recorded in `meta.json`.
+```
+coreml/<model>/meta.json                                   # shape / precision info
+coreml/<model>/model.mlpackage/Manifest.json
+coreml/<model>/model.mlpackage/Data/com.apple.CoreML/model.mlmodel
+coreml/<model>/model.mlpackage/Data/com.apple.CoreML/weights/weight.bin
+```
 
-The `direct` strategy is tried first; if the graph needs constant folding the
-`fold` strategy is used automatically.
+`ModelManager` lists that folder through the Hub API — following the API's
+pagination cursor so every model is included, with no hardcoded model list —
+then for the selected model:
+
+1. Downloads the package files with `URLSession` (with progress), skipping files
+   already present in the cache with the expected size.
+2. Compiles `model.mlpackage` to `model.mlmodelc` with
+   `MLModel.compileModel(at:)`.
+3. Loads the compiled model into `InferenceEngine`, which discovers the input /
+   output names and shapes from `MLModel.modelDescription`.
+
+No conversion happens on the device; the hosted packages already contain the
+right precision (float16 or float32) and are used as-is.
 
 ### Performance on an Apple-silicon Mac
 
 | Model | Output | Precision | Inference |
 |---|---|---|---|
-| `abstract_photo` | 512×512 | float16 | ~1.3 ms (ANE) |
-| `flowers_big` (StyleGAN2) | 256×256 | float32 | ~28 ms |
+| `abstract_photo_medium` | 512×512 | float16 | ~3.8 ms |
+| `abstract_photo_big` | 512×512 | float16 | ~24 ms |
+| `flowers_big` (StyleGAN2) | 256×256 | float32 | ~29 ms |
+
+Figures are from the `meta.json` shipped with each hosted model; actual speed
+depends on the Mac and compute unit.
 
 ## Audio input
 
@@ -122,19 +128,19 @@ Microphone and system audio therefore have identical DSP cost.
 | CoreML session, latest-wins pipeline | `Sources/Model/InferenceEngine.swift` |
 | Metal renderer (mirror tiling) | `Sources/Model/Renderer.swift` |
 | Shaders | `Resources/Shaders.metal` |
-| HF discovery, download, cache | `Sources/Model/ModelManager.swift` |
-| Python converter runner | `Sources/Model/Converter.swift` |
-| Control panel / sliders | `Sources/Views/` |
-| ONNX → CoreML converter | `Converter/convert_model.py` |
+| HF discovery, download of hosted CoreML packages, compile + cache | `Sources/Model/ModelManager.swift` |
+| Control panel | `Sources/Views/` |
 
 ## Current scope
 
-Implemented: model discovery + download + conversion + cache, CoreML inference,
+Implemented: hosted CoreML model discovery + download + compile + cache, CoreML inference,
 Metal rendering with the three mirror modes, microphone capture with the full
-A-weighted/smoothed band-filter pipeline, demo signal, LSD modulation, all
-parameter sliders (General / Motion / Pulse / Brightness tabs), FPS/inference
-HUD, fullscreen.
+A-weighted/smoothed band-filter pipeline, demo signal, LSD modulation, a
+web-style control sidebar (telemetry, preamp and hue pills, live spectrum with
+draggable band handles and long-press width editing, General / Motion / Pulse /
+Brightness tabs with explanations, generator gallery with Hub author credits),
+brightness-direction discovery with a per-model cache, FPS/inference HUD, pause,
+fullscreen.
 
-Planned (the "extras"): the draggable spectrum editor, brightness-direction
-discovery, model cover thumbnails in the gallery, the compute-unit
+Planned (the "extras"): model cover thumbnails in the gallery, the compute-unit
 benchmark/override dropdown, and pointer-idle panel hiding.

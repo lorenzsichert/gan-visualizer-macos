@@ -25,6 +25,15 @@ final class InferenceEngine {
     private let ackSem = DispatchSemaphore(value: 0)
     private let lock = NSLock()
 
+    // Brightness-direction discovery runs on its own queue so it can interleave
+    // with the live render pump. Both paths call `model.prediction` and are
+    // serialized through `predictionLock`; discovery uses its own input array so
+    // it never races the live pump's shared `zArray`.
+    private let predictionLock = NSLock()
+    private let discoveryQueue = DispatchQueue(
+        label: "com.jakobsichert.GANVisualizer.brightness", qos: .utility)
+    private var discoveryToken = 0
+
     // Shared state (all guarded by `lock`).
     private var model: MLModel?
     private var inputDim = 512
@@ -87,6 +96,169 @@ final class InferenceEngine {
     func currentInputDim() -> Int {
         lock.lock(); defer { lock.unlock() }
         return inputDim
+    }
+
+    // MARK: - Brightness direction
+
+    /// Finds the direction in latent space that makes the generated image
+    /// brighter, a direct port of the web app's `discoverBrightness`.
+    ///
+    /// It samples `samples` standard-normal latents, records the mean of each
+    /// generated image, and linear-regresses brightness against z. The sign is
+    /// checked by running `+direction` and `-direction`, so positive always
+    /// means brighter. Runs concurrently with live rendering (predictions are
+    /// serialized), and aborts cleanly if the model is replaced.
+    func discoverBrightness(samples: Int = 256,
+                            progress: @escaping (_ done: Int, _ total: Int) -> Void,
+                            completion: @escaping (_ direction: [Float]?) -> Void) {
+        lock.lock()
+        guard let model = model else {
+            lock.unlock()
+            completion(nil)
+            return
+        }
+        let dim = inputDim
+        let iName = inputName
+        let oName = outputName
+        let startEpoch = epoch
+        discoveryToken += 1
+        let token = discoveryToken
+        lock.unlock()
+
+        let n = Swift.max(1, samples)
+        progress(0, n)
+
+        discoveryQueue.async { [weak self] in
+            guard let self else { return }
+
+            func cancelled() -> Bool {
+                self.lock.lock(); defer { self.lock.unlock() }
+                return self.discoveryToken != token || self.epoch != startEpoch
+            }
+
+            func finish(_ direction: [Float]?) {
+                completion(direction)
+            }
+
+            guard let zArray = try? MLMultiArray(shape: [1, NSNumber(value: dim)],
+                                                 dataType: .float32) else {
+                finish(nil)
+                return
+            }
+
+            func brightness(_ z: [Float]) -> Float? {
+                let p = zArray.dataPointer.bindMemory(to: Float.self, capacity: dim)
+                let count = Swift.min(dim, z.count)
+                for i in 0..<dim { p[i] = i < count ? z[i] : 0 }
+
+                let out: MLFeatureProvider
+                do {
+                    let provider = try MLDictionaryFeatureProvider(
+                        dictionary: [iName: MLFeatureValue(multiArray: zArray)])
+                    self.predictionLock.lock()
+                    do {
+                        out = try model.prediction(from: provider)
+                    } catch {
+                        self.predictionLock.unlock()
+                        return nil
+                    }
+                    self.predictionLock.unlock()
+                } catch {
+                    return nil
+                }
+
+                guard let arr = out.featureValue(for: oName)?.multiArrayValue else { return nil }
+                return Self.mean(of: arr)
+            }
+
+            // Box-Muller standard normals, exactly like the web port.
+            var z = [Float](repeating: 0, count: n * dim)
+            for i in 0..<z.count {
+                var u: Float = 0, v: Float = 0, s: Float = 2
+                repeat {
+                    u = Float.random(in: -1..<1)
+                    v = Float.random(in: -1..<1)
+                    s = u * u + v * v
+                } while s >= 1 || s == 0 || !s.isFinite
+                z[i] = u * sqrt((-2 * log(s)) / s)
+            }
+
+            var b = [Float](repeating: 0, count: n)
+            for i in 0..<n {
+                if cancelled() { finish(nil); return }
+                guard let mean = autoreleasepool(invoking: {
+                    brightness(Array(z[(i * dim)..<((i + 1) * dim)]))
+                }) else {
+                    finish(nil)
+                    return
+                }
+                b[i] = mean
+                if (i + 1) % 8 == 0 || i + 1 == n { progress(i + 1, n) }
+            }
+
+            if cancelled() { finish(nil); return }
+
+            // Linear regression: d = (Z - z_mean)^T (b - b_mean), then unit
+            // normalize.
+            var zMean = [Float](repeating: 0, count: dim)
+            for i in 0..<n {
+                let row = i * dim
+                for j in 0..<dim { zMean[j] += z[row + j] }
+            }
+            for j in 0..<dim { zMean[j] /= Float(n) }
+            var bMean: Float = 0
+            for i in 0..<n { bMean += b[i] }
+            bMean /= Float(n)
+
+            var d = [Float](repeating: 0, count: dim)
+            for i in 0..<n {
+                let db = b[i] - bMean
+                let row = i * dim
+                for j in 0..<dim { d[j] += (z[row + j] - zMean[j]) * db }
+            }
+            var norm: Float = 0
+            for j in 0..<dim { norm += d[j] * d[j] }
+            norm = sqrt(norm)
+            if norm > 1e-12 {
+                for j in 0..<dim { d[j] /= norm }
+            } else {
+                d = [Float](repeating: 0, count: dim)
+            }
+
+            // Make +d point toward brighter images.
+            if norm > 1e-12 {
+                if cancelled() { finish(nil); return }
+                let pos = brightness(d) ?? 0
+                if cancelled() { finish(nil); return }
+                let neg = brightness(d.map { -$0 }) ?? 0
+                if pos < neg {
+                    for j in 0..<dim { d[j] = -d[j] }
+                }
+            }
+
+            finish(cancelled() ? nil : d)
+        }
+    }
+
+    private static func mean(of arr: MLMultiArray) -> Float {
+        let count = arr.count
+        guard count > 0 else { return 0 }
+        if arr.dataType == .float16 {
+            let p = arr.dataPointer.bindMemory(to: Float16.self, capacity: count)
+            var sum: Float = 0
+            for i in 0..<count { sum += Float(p[i]) }
+            return sum / Float(count)
+        }
+        if arr.dataType == .double {
+            let p = arr.dataPointer.bindMemory(to: Double.self, capacity: count)
+            var sum: Double = 0
+            for i in 0..<count { sum += p[i] }
+            return Float(sum / Double(count))
+        }
+        let p = arr.dataPointer.bindMemory(to: Float.self, capacity: count)
+        var sum: Float = 0
+        for i in 0..<count { sum += p[i] }
+        return sum / Float(count)
     }
 
     // MARK: - Loading
@@ -263,7 +435,15 @@ final class InferenceEngine {
             for i in 0..<dim { zp[i] = i < n ? z[i] : 0 }
             let provider = try MLDictionaryFeatureProvider(
                 dictionary: [iName: MLFeatureValue(multiArray: zArray)])
-            let out = try model.prediction(from: provider)
+            predictionLock.lock()
+            let out: MLFeatureProvider
+            do {
+                out = try model.prediction(from: provider)
+            } catch {
+                predictionLock.unlock()
+                throw error
+            }
+            predictionLock.unlock()
             guard let arr = out.featureValue(for: oName)?.multiArrayValue else { return false }
             encode(arr, into: buffer, texture: texture, C: C, H: H, W: W, tanh: tanh, hue: hue)
             let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000

@@ -56,7 +56,7 @@ final class LatentEngine {
         return 20 * log10(num / den) + 2.0
     }
 
-    private func genDemoSpectrum(_ t: Double, _ out: inout [Float]) {
+    static func genDemoSpectrum(_ t: Double, _ out: inout [Float]) {
         let beat1 = Float(0.5 + 0.5 * sin(t * 2.1))
         let beat2 = Float(0.5 + 0.5 * sin(t * 3.7))
         for i in out.indices { out[i] = 0 }
@@ -81,7 +81,7 @@ final class LatentEngine {
         if audio.active {
             audio.copySpectrum(into: &spectrum)
         } else if demo {
-            genDemoSpectrum(nowSec, &spectrum)
+            Self.genDemoSpectrum(nowSec, &spectrum)
         } else {
             for i in spectrum.indices { spectrum[i] = 0 }
         }
